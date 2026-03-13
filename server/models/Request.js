@@ -18,7 +18,7 @@ const requestSchema = new mongoose.Schema({
     },
     category: {
         type: String,
-        enum: ['Leave', 'On Duty (OD)', 'Internship', 'Event Permission', 'Hackathon', 'Project Work', 'Medical Leave', 'Fee Concession', 'Hostel Leave', 'Other'],
+        enum: ['Leave', 'On Duty (OD)', 'Internship', 'Event Permission', 'Hackathon', 'Project Work', 'Medical Leave', 'Fee Concession', 'Sick Leave', 'Other'],
         default: 'Other'
     },
     status: {
