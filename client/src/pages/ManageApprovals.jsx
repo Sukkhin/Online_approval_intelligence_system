@@ -38,20 +38,20 @@ export default function ManageApprovals() {
         let result = [...requests];
 
         if (tab !== 'All') {
-            result = result.filter(r => r.status === tab);
+            result = result.filter((request) => request.status === tab);
         }
 
         if (categoryFilter !== 'all') {
-            result = result.filter(r => r.category === categoryFilter);
+            result = result.filter((request) => request.category === categoryFilter);
         }
 
         if (search.trim()) {
-            const s = search.toLowerCase();
-            result = result.filter(r =>
-                r.title.toLowerCase().includes(s) ||
-                r.description.toLowerCase().includes(s) ||
-                r.submittedBy?.name?.toLowerCase().includes(s) ||
-                r.submittedBy?.email?.toLowerCase().includes(s)
+            const query = search.toLowerCase();
+            result = result.filter((request) =>
+                request.title.toLowerCase().includes(query) ||
+                request.description.toLowerCase().includes(query) ||
+                request.submittedBy?.name?.toLowerCase().includes(query) ||
+                request.submittedBy?.email?.toLowerCase().includes(query)
             );
         }
 
@@ -65,8 +65,10 @@ export default function ManageApprovals() {
 
     const handleAction = async () => {
         if (!modal) return;
+
         const { requestId, action } = modal;
         setActionLoading(requestId);
+
         try {
             await API.put(`/requests/${requestId}/${action}`, { comment });
             addToast(`Request ${action}d successfully!`, 'success');
@@ -87,13 +89,13 @@ export default function ManageApprovals() {
     };
 
     const tabs = ['Pending', 'Approved', 'Rejected', 'All'];
-    const categories = ['Leave', 'On Duty (OD)', 'Internship', 'Event Permission', 'Hackathon', 'Project Work', 'Medical Leave', 'Fee Concession', 'Hostel Leave', 'Other'];
+    const categories = ['Leave', 'On Duty (OD)', 'Internship', 'Event Permission', 'Hackathon', 'Project Work', 'Medical Leave', 'Fee Concession', 'Sick Leave', 'Other'];
 
     if (loading) {
         return (
             <div>
                 <div className="page-header"><div className="skeleton skeleton-title"></div></div>
-                {[1, 2, 3].map(i => <div key={i} className="skeleton skeleton-card" style={{ height: '120px' }}></div>)}
+                {[1, 2, 3].map((item) => <div key={item} className="skeleton skeleton-card" style={{ height: '120px' }}></div>)}
             </div>
         );
     }
@@ -107,23 +109,26 @@ export default function ManageApprovals() {
                 <p>Review and process all submitted approval requests</p>
             </div>
 
-            {/* Tabs */}
+            <div className="filter-summary animate-fadeIn">
+                <span className="metric-pill">{filtered.length} requests in view</span>
+                <span className="metric-pill metric-pill-muted">Current tab: {tab}</span>
+            </div>
+
             <div className="filter-bar animate-fadeIn">
                 <div className="tab-group">
-                    {tabs.map(t => (
+                    {tabs.map((currentTab) => (
                         <button
-                            key={t}
-                            className={`tab-btn ${tab === t ? 'active' : ''}`}
-                            onClick={() => setTab(t)}
-                            id={`tab-${t.toLowerCase()}`}
+                            key={currentTab}
+                            className={`tab-btn ${tab === currentTab ? 'active' : ''}`}
+                            onClick={() => setTab(currentTab)}
+                            id={`tab-${currentTab.toLowerCase()}`}
                         >
-                            {t}
+                            {currentTab}
                         </button>
                     ))}
                 </div>
             </div>
 
-            {/* Search & Filter */}
             <div className="filter-bar animate-fadeIn">
                 <div className="search-bar" style={{ flex: 1 }}>
                     <span className="search-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg></span>
@@ -142,21 +147,17 @@ export default function ManageApprovals() {
                     id="filter-category"
                 >
                     <option value="all">All Categories</option>
-                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                    {categories.map((category) => <option key={category} value={category}>{category}</option>)}
                 </select>
             </div>
 
-            {/* Request List */}
             <div className="request-list stagger">
                 {filtered.length > 0 ? (
-                    filtered.map((req, i) => (
-                        <div key={req._id} className="request-card" style={{ animationDelay: `${i * 0.05}s` }}>
+                    filtered.map((req, index) => (
+                        <div key={req._id} className="request-card" style={{ animationDelay: `${index * 0.05}s` }}>
                             <div className="request-card-header">
                                 <span className="request-card-title">{req.title}</span>
-                                <span className={`badge badge-${req.status.toLowerCase()}`}>
-
-                                    {req.status}
-                                </span>
+                                <span className={`badge badge-${req.status.toLowerCase()}`}>{req.status}</span>
                             </div>
                             <div className="request-card-desc">{req.description}</div>
                             <div className="request-card-meta">
@@ -164,8 +165,8 @@ export default function ManageApprovals() {
                                     {req.priority}
                                 </span>
                                 <span>{req.category}</span>
-                                <span>• {formatDate(req.createdAt)}</span>
-                                <span>• {req.submittedBy?.email}</span>
+                                <span>{formatDate(req.createdAt)}</span>
+                                <span>{req.submittedBy?.email}</span>
                             </div>
 
                             {req.adminComment && (
@@ -199,46 +200,30 @@ export default function ManageApprovals() {
                     ))
                 ) : (
                     <div className="empty-state">
-                        <div className="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /></svg></div>
+                        <div className="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /></svg></div>
                         <h3>No Requests Found</h3>
-                        <p>
-                            {tab !== 'All'
-                                ? `No ${tab.toLowerCase()} requests at the moment`
-                                : 'No requests match your filters'}
-                        </p>
+                        <p>{tab !== 'All' ? `No ${tab.toLowerCase()} requests at the moment` : 'No requests match your filters'}</p>
                     </div>
                 )}
             </div>
 
-            {/* Confirmation Modal with Remark */}
             {modal && (
                 <div className="modal-overlay" onClick={() => setModal(null)}>
-                    <div className="modal" onClick={e => e.stopPropagation()}>
-                        <div style={{
-                            background: modal.action === 'approve' ? 'var(--success-bg)' : 'var(--danger-bg)',
-                            margin: '-32px -32px 24px -32px',
-                            padding: '24px 32px',
-                            borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
-                            textAlign: 'center'
-                        }}>
-                            <div style={{ fontSize: '36px', marginBottom: '8px' }}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <div className={`modal-hero ${modal.action === 'approve' ? 'approve' : 'reject'}`}>
+                            <div className="modal-hero-icon">
                                 {modal.action === 'approve' ? <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20,6 9,17 4,12" /></svg> : <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>}
                             </div>
-                            <h2 style={{
-                                color: modal.action === 'approve' ? 'var(--success-text)' : 'var(--danger-text)',
-                                margin: 0
-                            }}>
-                                {modal.action === 'approve' ? 'Approve Request' : 'Reject Request'}
-                            </h2>
+                            <h2>{modal.action === 'approve' ? 'Approve Request' : 'Reject Request'}</h2>
                         </div>
 
-                        <p style={{ marginBottom: '16px', color: 'var(--text-secondary)' }}>
+                        <p className="modal-copy">
                             Are you sure you want to <strong>{modal.action}</strong> this request? Please add your remarks below.
                         </p>
 
                         <div className="form-group">
-                            <label className="form-label" htmlFor="modal-remark" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                Remark <span style={{ color: 'var(--danger)', fontSize: '12px' }}>*required</span>
+                            <label className="form-label modal-label" htmlFor="modal-remark">
+                                Remark <span>*required</span>
                             </label>
                             <textarea
                                 id="modal-remark"
@@ -246,15 +231,12 @@ export default function ManageApprovals() {
                                 value={comment}
                                 onChange={(e) => setComment(e.target.value)}
                                 placeholder={modal.action === 'approve'
-                                    ? "e.g., Approved. Please proceed as planned..."
-                                    : "e.g., Rejected due to insufficient documentation..."}
-                                style={{
-                                    minHeight: '100px',
-                                    borderColor: comment.trim() ? 'var(--success)' : 'var(--border)'
-                                }}
+                                    ? 'e.g., Approved. Please proceed as planned...'
+                                    : 'e.g., Rejected due to insufficient documentation...'}
+                                style={{ minHeight: '100px' }}
                             />
                             {!comment.trim() && (
-                                <div className="form-error" style={{ marginTop: '6px' }}>
+                                <div className="form-error">
                                     Please provide a remark before {modal.action === 'approve' ? 'approving' : 'rejecting'}
                                 </div>
                             )}
@@ -269,7 +251,7 @@ export default function ManageApprovals() {
                                 onClick={handleAction}
                                 disabled={actionLoading || !comment.trim()}
                             >
-                                {actionLoading ? <span className="spinner"></span> : `${modal.action === 'approve' ? 'Approve' : 'Reject'}`}
+                                {actionLoading ? <span className="spinner"></span> : modal.action === 'approve' ? 'Approve' : 'Reject'}
                             </button>
                         </div>
                     </div>

@@ -29,7 +29,6 @@ export default function Dashboard() {
 
     const isAdmin = user?.role === 'admin' || user?.role === 'principal';
 
-    // Donut chart calculations
     const total = stats.total || 1;
     const radius = 70;
     const circumference = 2 * Math.PI * radius;
@@ -42,12 +41,18 @@ export default function Dashboard() {
     const rejectedDash = rejectedPct * circumference;
 
     const pendingOffset = 0;
-    const approvedOffset = -(pendingDash);
+    const approvedOffset = -pendingDash;
     const rejectedOffset = -(pendingDash + approvedDash);
 
     const formatDate = (dateStr) => {
-        const d = new Date(dateStr);
-        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true });
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
     };
 
     if (loading) {
@@ -58,7 +63,7 @@ export default function Dashboard() {
                     <div className="skeleton skeleton-text" style={{ width: '40%' }}></div>
                 </div>
                 <div className="stats-grid stagger">
-                    {[1, 2, 3, 4].map(i => <div key={i} className="skeleton skeleton-card" style={{ height: '120px' }}></div>)}
+                    {[1, 2, 3, 4].map((item) => <div key={item} className="skeleton skeleton-card" style={{ height: '120px' }}></div>)}
                 </div>
             </div>
         );
@@ -71,14 +76,13 @@ export default function Dashboard() {
                 <p>{isAdmin ? 'Overview of all approval requests in the system' : 'Track your submitted approval requests'}</p>
             </div>
 
-            {/* Stats Cards */}
             <div className="stats-grid stagger">
                 <div className="stat-card" id="stat-total">
                     <div>
                         <div className="stat-card-label">Total Requests</div>
                         <div className="stat-card-value">{stats.total}</div>
                     </div>
-                    <div className="stat-card-icon total"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14,2 14,8 20,8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg></div>
+                    <div className="stat-card-icon total"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14,2 14,8 20,8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /></svg></div>
                 </div>
                 <div className="stat-card" id="stat-pending">
                     <div>
@@ -92,7 +96,7 @@ export default function Dashboard() {
                         <div className="stat-card-label">Approved</div>
                         <div className="stat-card-value">{stats.approved}</div>
                     </div>
-                    <div className="stat-card-icon approved"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" /><polyline points="22,4 12,14.01 9,11.01" /></svg></div>
+                    <div className="stat-card-icon approved"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22,4 12,14.01 9,11.01" /></svg></div>
                 </div>
                 <div className="stat-card" id="stat-rejected">
                     <div>
@@ -103,9 +107,7 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* Dashboard Grid */}
             <div className="dashboard-grid">
-                {/* Donut Chart */}
                 <div className="card animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
                     <div className="card-header">
                         <h2>Status Distribution</h2>
@@ -115,24 +117,21 @@ export default function Dashboard() {
                             <>
                                 <div className="donut-chart">
                                     <svg viewBox="0 0 200 200">
-                                        {/* Pending */}
                                         <circle
                                             cx="100" cy="100" r={radius}
-                                            stroke="#f59e0b"
+                                            stroke="var(--warning)"
                                             strokeDasharray={`${pendingDash} ${circumference - pendingDash}`}
                                             strokeDashoffset={pendingOffset}
                                         />
-                                        {/* Approved */}
                                         <circle
                                             cx="100" cy="100" r={radius}
-                                            stroke="#10b981"
+                                            stroke="var(--success)"
                                             strokeDasharray={`${approvedDash} ${circumference - approvedDash}`}
                                             strokeDashoffset={approvedOffset}
                                         />
-                                        {/* Rejected */}
                                         <circle
                                             cx="100" cy="100" r={radius}
-                                            stroke="#ef4444"
+                                            stroke="var(--danger)"
                                             strokeDasharray={`${rejectedDash} ${circumference - rejectedDash}`}
                                             strokeDashoffset={rejectedOffset}
                                         />
@@ -144,15 +143,15 @@ export default function Dashboard() {
                                 </div>
                                 <div className="donut-legend">
                                     <div className="donut-legend-item">
-                                        <div className="donut-legend-dot" style={{ background: '#f59e0b' }}></div>
+                                        <div className="donut-legend-dot" style={{ background: 'var(--warning)' }}></div>
                                         Pending
                                     </div>
                                     <div className="donut-legend-item">
-                                        <div className="donut-legend-dot" style={{ background: '#10b981' }}></div>
+                                        <div className="donut-legend-dot" style={{ background: 'var(--success)' }}></div>
                                         Approved
                                     </div>
                                     <div className="donut-legend-item">
-                                        <div className="donut-legend-dot" style={{ background: '#ef4444' }}></div>
+                                        <div className="donut-legend-dot" style={{ background: 'var(--danger)' }}></div>
                                         Rejected
                                     </div>
                                 </div>
@@ -167,7 +166,6 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* Recent Activity */}
                 <div className="card animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
                     <div className="card-header">
                         <h2>Recent Activity</h2>
@@ -175,24 +173,21 @@ export default function Dashboard() {
                     <div className="card-body">
                         {recent.length > 0 ? (
                             <ul className="activity-feed">
-                                {recent.map((req, i) => (
-                                    <li key={req._id} className="activity-item" style={{ animationDelay: `${i * 0.05}s` }}>
+                                {recent.map((req, index) => (
+                                    <li key={req._id} className="activity-item" style={{ animationDelay: `${index * 0.05}s` }}>
                                         <div>
                                             <div className="activity-title">{req.title}</div>
                                             <div className="activity-meta">
-                                                {req.submittedBy?.email} • {formatDate(req.createdAt)}
+                                                {req.submittedBy?.email} | {formatDate(req.createdAt)}
                                             </div>
                                         </div>
-                                        <span className={`badge badge-${req.status.toLowerCase()}`}>
-
-                                            {req.status}
-                                        </span>
+                                        <span className={`badge badge-${req.status.toLowerCase()}`}>{req.status}</span>
                                     </li>
                                 ))}
                             </ul>
                         ) : (
                             <div className="empty-state">
-                                <div className="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /></svg></div>
+                                <div className="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /></svg></div>
                                 <h3>No Activity</h3>
                                 <p>No requests have been submitted yet</p>
                             </div>

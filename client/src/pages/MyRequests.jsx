@@ -31,14 +31,14 @@ export default function MyRequests() {
         let result = [...requests];
 
         if (statusFilter !== 'all') {
-            result = result.filter(r => r.status === statusFilter);
+            result = result.filter((request) => request.status === statusFilter);
         }
 
         if (search.trim()) {
-            const s = search.toLowerCase();
-            result = result.filter(r =>
-                r.title.toLowerCase().includes(s) ||
-                r.description.toLowerCase().includes(s)
+            const query = search.toLowerCase();
+            result = result.filter((request) =>
+                request.title.toLowerCase().includes(query) ||
+                request.description.toLowerCase().includes(query)
             );
         }
 
@@ -57,7 +57,7 @@ export default function MyRequests() {
                 <div className="page-header">
                     <div className="skeleton skeleton-title"></div>
                 </div>
-                {[1, 2, 3].map(i => <div key={i} className="skeleton skeleton-card" style={{ height: '120px' }}></div>)}
+                {[1, 2, 3].map((item) => <div key={item} className="skeleton skeleton-card" style={{ height: '120px' }}></div>)}
             </div>
         );
     }
@@ -69,7 +69,11 @@ export default function MyRequests() {
                 <p>View and track all your submitted approval requests</p>
             </div>
 
-            {/* Filter Bar */}
+            <div className="filter-summary animate-fadeIn">
+                <span className="metric-pill">{filtered.length} visible</span>
+                <span className="metric-pill metric-pill-muted">{requests.length} total requests</span>
+            </div>
+
             <div className="filter-bar animate-fadeIn">
                 <div className="search-bar" style={{ flex: 1 }}>
                     <span className="search-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg></span>
@@ -94,17 +98,13 @@ export default function MyRequests() {
                 </select>
             </div>
 
-            {/* Request List */}
             <div className="request-list stagger">
                 {filtered.length > 0 ? (
-                    filtered.map((req, i) => (
-                        <div key={req._id} className="request-card" style={{ animationDelay: `${i * 0.05}s` }}>
+                    filtered.map((req, index) => (
+                        <div key={req._id} className="request-card" style={{ animationDelay: `${index * 0.05}s` }}>
                             <div className="request-card-header">
                                 <span className="request-card-title">{req.title}</span>
-                                <span className={`badge badge-${req.status.toLowerCase()}`}>
-
-                                    {req.status}
-                                </span>
+                                <span className={`badge badge-${req.status.toLowerCase()}`}>{req.status}</span>
                             </div>
                             <div className="request-card-desc">{req.description}</div>
                             <div className="request-card-meta">
@@ -112,8 +112,8 @@ export default function MyRequests() {
                                     {req.priority}
                                 </span>
                                 <span>{req.category}</span>
-                                <span>• {formatDate(req.createdAt)}</span>
-                                <span>• {req.submittedBy?.email}</span>
+                                <span>{formatDate(req.createdAt)}</span>
+                                <span>{req.submittedBy?.email}</span>
                             </div>
                             {req.adminComment && (
                                 <div className="admin-comment-section">
@@ -125,9 +125,9 @@ export default function MyRequests() {
                     ))
                 ) : (
                     <div className="empty-state">
-                        <div className="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /></svg></div>
+                        <div className="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /></svg></div>
                         <h3>No Requests Found</h3>
-                        <p>{search ? 'Try a different search term' : 'You haven\'t submitted any requests yet'}</p>
+                        <p>{search ? 'Try a different search term' : 'You have not submitted any requests yet'}</p>
                     </div>
                 )}
             </div>

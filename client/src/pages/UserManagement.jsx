@@ -21,10 +21,10 @@ export default function UserManagement() {
 
     useEffect(() => {
         if (search.trim()) {
-            const s = search.toLowerCase();
-            setFiltered(users.filter(u =>
-                u.name.toLowerCase().includes(s) ||
-                u.email.toLowerCase().includes(s)
+            const query = search.toLowerCase();
+            setFiltered(users.filter((user) =>
+                user.name.toLowerCase().includes(query) ||
+                user.email.toLowerCase().includes(query)
             ));
         } else {
             setFiltered(users);
@@ -86,14 +86,14 @@ export default function UserManagement() {
     };
 
     const getInitials = (name) => {
-        return name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
+        return name?.split(' ').map((word) => word[0]).join('').toUpperCase().slice(0, 2) || '?';
     };
 
     if (loading) {
         return (
             <div>
                 <div className="page-header"><div className="skeleton skeleton-title"></div></div>
-                <div className="stats-grid">{[1, 2, 3, 4].map(i => <div key={i} className="skeleton skeleton-card" style={{ height: '80px' }}></div>)}</div>
+                <div className="stats-grid">{[1, 2, 3, 4].map((item) => <div key={item} className="skeleton skeleton-card" style={{ height: '80px' }}></div>)}</div>
             </div>
         );
     }
@@ -116,13 +116,16 @@ export default function UserManagement() {
                 </button>
             </div>
 
-            {/* Info Banner */}
             <div className="info-banner animate-fadeIn">
-                <div className="info-banner-icon">🛡</div>
-                <span>Admin Access — You can add regular Users to the system.</span>
+                <div className="info-banner-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2l7 4v6c0 5-3.4 9.4-7 10-3.6-.6-7-5-7-10V6l7-4z" />
+                        <path d="M9 12l2 2 4-4" />
+                    </svg>
+                </div>
+                <span>Admin access only. Create accounts, review system roles, and keep the approval team organized.</span>
             </div>
 
-            {/* User Stats */}
             <div className="stats-grid stagger">
                 <div className="stat-card">
                     <div>
@@ -150,7 +153,6 @@ export default function UserManagement() {
                 </div>
             </div>
 
-            {/* Search */}
             <div className="filter-bar animate-fadeIn" style={{ marginTop: '24px' }}>
                 <div className="search-bar" style={{ maxWidth: '500px' }}>
                     <span className="search-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg></span>
@@ -164,40 +166,45 @@ export default function UserManagement() {
                 </div>
             </div>
 
-            {/* User List */}
             <div className="card animate-fadeInUp" style={{ marginTop: '16px' }}>
                 <div className="card-body" style={{ padding: 0 }}>
                     <ul className="user-list">
                         {filtered.length > 0 ? (
-                            filtered.map(u => (
-                                <li key={u._id} className="user-item">
+                            filtered.map((user) => (
+                                <li key={user._id} className="user-item">
                                     <div className="user-item-info">
-                                        <div className="user-item-avatar">{getInitials(u.name)}</div>
+                                        <div className="user-item-avatar">{getInitials(user.name)}</div>
                                         <div>
-                                            <div className="user-item-name">{u.name}</div>
-                                            <div className="user-item-email">{u.email}</div>
+                                            <div className="user-item-name">{user.name}</div>
+                                            <div className="user-item-email">{user.email}</div>
                                         </div>
                                     </div>
                                     <div className="user-item-actions">
-                                        <span className={`role-badge ${u.role}`}>
-                                            {u.role.charAt(0).toUpperCase() + u.role.slice(1)}
+                                        <span className={`role-badge ${user.role}`}>
+                                            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                                         </span>
                                         <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                                            {formatDate(u.createdAt)}
+                                            {formatDate(user.createdAt)}
                                         </span>
                                         <button
                                             className="btn btn-outline btn-sm"
-                                            onClick={() => setDeleteModal(u._id)}
+                                            onClick={() => setDeleteModal(user._id)}
                                             style={{ padding: '6px 12px', fontSize: '12px' }}
                                         >
-                                            🗑
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M3 6h18" />
+                                                <path d="M8 6V4h8v2" />
+                                                <path d="M19 6l-1 14H6L5 6" />
+                                                <path d="M10 11v6" />
+                                                <path d="M14 11v6" />
+                                            </svg>
                                         </button>
                                     </div>
                                 </li>
                             ))
                         ) : (
                             <div className="empty-state" style={{ padding: '40px' }}>
-                                <div className="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg></div>
+                                <div className="empty-state-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg></div>
                                 <h3>No Users Found</h3>
                                 <p>{search ? 'No users match your search' : 'No users in the system'}</p>
                             </div>
@@ -206,10 +213,9 @@ export default function UserManagement() {
                 </div>
             </div>
 
-            {/* Add User Modal */}
             {showAddModal && (
                 <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-                    <div className="modal" onClick={e => e.stopPropagation()}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
                         <h2>Add New User</h2>
                         <p>Create a new user account for the system.</p>
 
@@ -221,7 +227,7 @@ export default function UserManagement() {
                                     className="form-input"
                                     type="text"
                                     value={newUser.name}
-                                    onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+                                    onChange={(e) => setNewUser((prev) => ({ ...prev, name: e.target.value }))}
                                     placeholder="User's full name"
                                 />
                             </div>
@@ -232,7 +238,7 @@ export default function UserManagement() {
                                     className="form-input"
                                     type="email"
                                     value={newUser.email}
-                                    onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+                                    onChange={(e) => setNewUser((prev) => ({ ...prev, email: e.target.value }))}
                                     placeholder="user@example.com"
                                 />
                             </div>
@@ -243,7 +249,7 @@ export default function UserManagement() {
                                     className="form-input"
                                     type="password"
                                     value={newUser.password}
-                                    onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                                    onChange={(e) => setNewUser((prev) => ({ ...prev, password: e.target.value }))}
                                     placeholder="At least 6 characters"
                                 />
                             </div>
@@ -253,7 +259,7 @@ export default function UserManagement() {
                                     id="add-role"
                                     className="form-select"
                                     value={newUser.role}
-                                    onChange={(e) => setNewUser(prev => ({ ...prev, role: e.target.value }))}
+                                    onChange={(e) => setNewUser((prev) => ({ ...prev, role: e.target.value }))}
                                 >
                                     <option value="user">User</option>
                                     <option value="admin">Admin</option>
@@ -273,10 +279,9 @@ export default function UserManagement() {
                 </div>
             )}
 
-            {/* Delete Confirmation Modal */}
             {deleteModal && (
                 <div className="modal-overlay" onClick={() => setDeleteModal(null)}>
-                    <div className="modal" onClick={e => e.stopPropagation()}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
                         <h2>Delete User</h2>
                         <p>Are you sure you want to delete this user? This action cannot be undone.</p>
                         <div className="modal-actions">
