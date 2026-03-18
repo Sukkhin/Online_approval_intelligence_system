@@ -1,6 +1,7 @@
 const express = require('express');
 const User = require('../models/User');
 const { auth, authorize } = require('../middleware/auth');
+const { validateCreateUser, validateRoleUpdate, validate } = require('../middleware/validators');
 
 const router = express.Router();
 
@@ -35,7 +36,7 @@ router.get('/stats', auth, authorize('admin', 'principal'), async (req, res) => 
 // @route   POST /api/users
 // @desc    Create a new user (admin adding a user)
 // @access  Admin only
-router.post('/', auth, authorize('admin', 'principal'), async (req, res) => {
+router.post('/', auth, authorize('admin', 'principal'), validateCreateUser, validate, async (req, res) => {
     try {
         const { name, email, password, role } = req.body;
 
@@ -78,7 +79,7 @@ router.delete('/:id', auth, authorize('admin', 'principal'), async (req, res) =>
 // @route   PUT /api/users/:id/role
 // @desc    Update user role
 // @access  Admin only
-router.put('/:id/role', auth, authorize('admin', 'principal'), async (req, res) => {
+router.put('/:id/role', auth, authorize('admin', 'principal'), validateRoleUpdate, validate, async (req, res) => {
     try {
         const { role } = req.body;
         const user = await User.findByIdAndUpdate(

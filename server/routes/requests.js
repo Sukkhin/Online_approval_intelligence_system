@@ -1,13 +1,14 @@
 const express = require('express');
 const Request = require('../models/Request');
 const { auth, authorize } = require('../middleware/auth');
+const { validateRequest, validate } = require('../middleware/validators');
 
 const router = express.Router();
 
 // @route   POST /api/requests
 // @desc    Create a new approval request
 // @access  Private
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, validateRequest, validate, async (req, res) => {
     try {
         const { title, description, priority, category } = req.body;
 
