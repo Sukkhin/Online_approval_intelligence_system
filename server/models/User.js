@@ -1,6 +1,12 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
+const LEGACY_ROLE_MAP = {
+  faculty: 'admin'
+};
+
+const ACTIVE_ROLES = ['user', 'admin', 'principal'];
+
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -21,8 +27,12 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'admin', 'principal'],
+    enum: ACTIVE_ROLES,
     default: 'user'
+  },
+  isActive: {
+    type: Boolean,
+    default: true
   }
 }, {
   timestamps: true
@@ -41,10 +51,15 @@ userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
+userSchema.statics.normalizeRole = function(role) {
+  return LEGACY_ROLE_MAP[role] || role;
+};
+
 // Remove password from JSON output
 userSchema.methods.toJSON = function() {
   const obj = this.toObject();
   delete obj.password;
+  obj.role = this.constructor.normalizeRole(obj.role);
   return obj;
 };
 

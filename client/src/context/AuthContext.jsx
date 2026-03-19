@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import API from '../services/api';
+import { getDefaultRoute } from '../utils/roleRoutes';
 
 const AuthContext = createContext(null);
 
@@ -33,15 +34,6 @@ export function AuthProvider({ children }) {
         return res.data;
     };
 
-    const register = async (name, email, password, role) => {
-        const res = await API.post('/auth/register', { name, email, password, role });
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
-        setToken(res.data.token);
-        setUser(res.data.user);
-        return res.data;
-    };
-
     const logout = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -50,7 +42,7 @@ export function AuthProvider({ children }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+        <AuthContext.Provider value={{ user, token, loading, login, logout, getDefaultRoute }}>
             {children}
         </AuthContext.Provider>
     );

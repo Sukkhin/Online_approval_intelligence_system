@@ -1,8 +1,14 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../hooks/useToast';
 
+const stageLabels = { admin: 'Admin / Principal', completed: 'Done' };
+const stageOrder = ['admin', 'completed'];
+
 export default function ManageApprovals() {
+    const { user } = useAuth();
     const [requests, setRequests] = useState([]);
     const [filtered, setFiltered] = useState([]);
     const [tab, setTab] = useState('Pending');
@@ -12,16 +18,12 @@ export default function ManageApprovals() {
     const [actionLoading, setActionLoading] = useState(null);
     const [modal, setModal] = useState(null);
     const [comment, setComment] = useState('');
+    const navigate = useNavigate();
 
     const { addToast, ToastContainer } = useToast();
 
-    useEffect(() => {
-        loadRequests();
-    }, []);
-
-    useEffect(() => {
-        filterRequests();
-    }, [tab, search, categoryFilter, requests]);
+    useEffect(() => { loadRequests(); }, []);
+    useEffect(() => { filterRequests(); }, [tab, search, categoryFilter, requests]);
 
     const loadRequests = async () => {
         try {
@@ -65,12 +67,11 @@ export default function ManageApprovals() {
 
     const handleAction = async () => {
         if (!modal) return;
-
         const { requestId, action } = modal;
         setActionLoading(requestId);
 
         try {
-            await API.put(`/requests/${requestId}/${action}`, { comment });
+            await API.put(`/requests/${requestId}/review`, { action, comment });
             addToast(`Request ${action}d successfully!`, 'success');
             setModal(null);
             setComment('');
@@ -88,7 +89,13 @@ export default function ManageApprovals() {
         });
     };
 
-    const tabs = ['Pending', 'Approved', 'Rejected', 'All'];
+    const canReview = (request) => {
+        if (request.status === 'Approved' || request.status === 'Rejected') return false;
+        if (request.currentStage === 'completed') return false;
+        return user?.role === 'admin' || user?.role === 'principal';
+    };
+
+    const tabs = ['Pending', 'In Review', 'Escalated', 'Approved', 'Rejected', 'All'];
     const categories = ['Leave', 'On Duty (OD)', 'Internship', 'Event Permission', 'Hackathon', 'Project Work', 'Medical Leave', 'Fee Concession', 'Sick Leave', 'Other'];
 
     if (loading) {
@@ -106,7 +113,7 @@ export default function ManageApprovals() {
 
             <div className="page-header">
                 <h1>Manage Approvals</h1>
-                <p>Review and process all submitted approval requests</p>
+                <p>Review and process submitted approval requests.</p>
             </div>
 
             <div className="filter-summary animate-fadeIn">
@@ -121,9 +128,12 @@ export default function ManageApprovals() {
                             key={currentTab}
                             className={`tab-btn ${tab === currentTab ? 'active' : ''}`}
                             onClick={() => setTab(currentTab)}
-                            id={`tab-${currentTab.toLowerCase()}`}
+                            id={`tab-${currentTab.toLowerCase().replace(' ', '-')}`}
                         >
                             {currentTab}
+                            {currentTab === 'Escalated' && requests.filter((request) => request.status === 'Escalated').length > 0 && (
+                                <span className="tab-badge">{requests.filter((request) => request.status === 'Escalated').length}</span>
+                            )}
                         </button>
                     ))}
                 </div>
@@ -153,46 +163,71 @@ export default function ManageApprovals() {
 
             <div className="request-list stagger">
                 {filtered.length > 0 ? (
-                    filtered.map((req, index) => (
-                        <div key={req._id} className="request-card" style={{ animationDelay: `${index * 0.05}s` }}>
+                    filtered.map((request, index) => (
+                        <div key={request._id} className="request-card" style={{ animationDelay: `${index * 0.05}s` }}>
                             <div className="request-card-header">
-                                <span className="request-card-title">{req.title}</span>
-                                <span className={`badge badge-${req.status.toLowerCase()}`}>{req.status}</span>
-                            </div>
-                            <div className="request-card-desc">{req.description}</div>
-                            <div className="request-card-meta">
-                                <span className={`priority-badge priority-${req.priority.toLowerCase()}`}>
-                                    {req.priority}
+                                <span
+                                    className="request-card-title request-card-title-link"
+                                    onClick={() => navigate(`/request/${request._id}`)}
+                                >
+                                    {request.title}
                                 </span>
-                                <span>{req.category}</span>
-                                <span>{formatDate(req.createdAt)}</span>
-                                <span>{req.submittedBy?.email}</span>
+                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                    {request.escalated && <span className="badge badge-escalated">SLA</span>}
+                                    <span className={`badge badge-${request.status.toLowerCase().replace(' ', '-')}`}>{request.status}</span>
+                                </div>
+                            </div>
+                            <div className="request-card-desc">{request.description}</div>
+
+                            <div className="mini-stage-bar">
+                                {stageOrder.map((stage) => {
+                                    const chainEntry = request.approvalChain?.find((entry) => entry.stage === stage);
+                                    let cls = 'upcoming';
+                                    if (chainEntry?.status === 'approved') cls = 'approved';
+                                    else if (chainEntry?.status === 'rejected') cls = 'rejected';
+                                    else if (stage === request.currentStage && request.status !== 'Approved' && request.status !== 'Rejected') cls = 'current';
+                                    if (stage === 'completed' && request.status === 'Approved') cls = 'approved';
+                                    return (
+                                        <div key={stage} className={`mini-stage mini-stage-${cls}`}>
+                                            <div className="mini-stage-dot"></div>
+                                            <span>{stageLabels[stage]}</span>
+                                        </div>
+                                    );
+                                })}
                             </div>
 
-                            {req.adminComment && (
-                                <div className="admin-comment-section">
-                                    <div className="admin-comment-label">Admin Remark</div>
-                                    <div className="admin-comment-text">{req.adminComment}</div>
-                                </div>
-                            )}
+                            <div className="request-card-meta">
+                                <span className={`priority-badge priority-${request.priority.toLowerCase()}`}>{request.priority}</span>
+                                <span>{request.category}</span>
+                                <span>{formatDate(request.createdAt)}</span>
+                                <span>{request.submittedBy?.name}</span>
+                                {request.attachments?.length > 0 && <span>Files: {request.attachments.length}</span>}
+                                {request.comments?.length > 0 && <span>Comments: {request.comments.length}</span>}
+                            </div>
 
-                            {req.status === 'Pending' && (
+                            {canReview(request) && (
                                 <div className="request-actions">
                                     <button
                                         className="btn btn-success btn-sm"
-                                        onClick={() => openModal(req._id, 'approve')}
-                                        disabled={actionLoading === req._id}
-                                        id={`btn-approve-${req._id}`}
+                                        onClick={() => openModal(request._id, 'approve')}
+                                        disabled={actionLoading === request._id}
+                                        id={`btn-approve-${request._id}`}
                                     >
-                                        {actionLoading === req._id ? <span className="spinner"></span> : 'Approve'}
+                                        {actionLoading === request._id ? <span className="spinner"></span> : `Approve (${stageLabels[request.currentStage]})`}
                                     </button>
                                     <button
                                         className="btn btn-danger btn-sm"
-                                        onClick={() => openModal(req._id, 'reject')}
-                                        disabled={actionLoading === req._id}
-                                        id={`btn-reject-${req._id}`}
+                                        onClick={() => openModal(request._id, 'reject')}
+                                        disabled={actionLoading === request._id}
+                                        id={`btn-reject-${request._id}`}
                                     >
-                                        {actionLoading === req._id ? <span className="spinner"></span> : 'Reject'}
+                                        {actionLoading === request._id ? <span className="spinner"></span> : 'Reject'}
+                                    </button>
+                                    <button
+                                        className="btn btn-outline btn-sm"
+                                        onClick={() => navigate(`/request/${request._id}`)}
+                                    >
+                                        View Details
                                     </button>
                                 </div>
                             )}
@@ -212,7 +247,10 @@ export default function ManageApprovals() {
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
                         <div className={`modal-hero ${modal.action === 'approve' ? 'approve' : 'reject'}`}>
                             <div className="modal-hero-icon">
-                                {modal.action === 'approve' ? <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20,6 9,17 4,12" /></svg> : <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>}
+                                {modal.action === 'approve'
+                                    ? <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20,6 9,17 4,12" /></svg>
+                                    : <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                }
                             </div>
                             <h2>{modal.action === 'approve' ? 'Approve Request' : 'Reject Request'}</h2>
                         </div>
@@ -223,7 +261,7 @@ export default function ManageApprovals() {
 
                         <div className="form-group">
                             <label className="form-label modal-label" htmlFor="modal-remark">
-                                Remark <span>*required</span>
+                                Remark <span>*recommended</span>
                             </label>
                             <textarea
                                 id="modal-remark"
@@ -235,21 +273,14 @@ export default function ManageApprovals() {
                                     : 'e.g., Rejected due to insufficient documentation...'}
                                 style={{ minHeight: '100px' }}
                             />
-                            {!comment.trim() && (
-                                <div className="form-error">
-                                    Please provide a remark before {modal.action === 'approve' ? 'approving' : 'rejecting'}
-                                </div>
-                            )}
                         </div>
 
                         <div className="modal-actions">
-                            <button className="btn btn-outline" onClick={() => setModal(null)}>
-                                Cancel
-                            </button>
+                            <button className="btn btn-outline" onClick={() => setModal(null)}>Cancel</button>
                             <button
                                 className={`btn ${modal.action === 'approve' ? 'btn-success' : 'btn-danger'}`}
                                 onClick={handleAction}
-                                disabled={actionLoading || !comment.trim()}
+                                disabled={actionLoading}
                             >
                                 {actionLoading ? <span className="spinner"></span> : modal.action === 'approve' ? 'Approve' : 'Reject'}
                             </button>

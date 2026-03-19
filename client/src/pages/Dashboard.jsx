@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function Dashboard() {
     const { user } = useAuth();
-    const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
+    const navigate = useNavigate();
+    const [stats, setStats] = useState({ total: 0, pending: 0, inReview: 0, approved: 0, rejected: 0, escalated: 0 });
     const [recent, setRecent] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    useEffect(() => { loadData(); }, []);
 
     const loadData = async () => {
         try {
@@ -32,7 +32,7 @@ export default function Dashboard() {
     const total = stats.total || 1;
     const radius = 70;
     const circumference = 2 * Math.PI * radius;
-    const pendingPct = stats.pending / total;
+    const pendingPct = (stats.pending + (stats.inReview || 0)) / total;
     const approvedPct = stats.approved / total;
     const rejectedPct = stats.rejected / total;
 
@@ -47,13 +47,12 @@ export default function Dashboard() {
     const formatDate = (dateStr) => {
         const date = new Date(dateStr);
         return date.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
+            month: 'short', day: 'numeric',
+            hour: 'numeric', minute: '2-digit', hour12: true
         });
     };
+
+    const stageLabels = { admin: 'Admin / Principal', completed: 'Done' };
 
     if (loading) {
         return (
@@ -86,8 +85,8 @@ export default function Dashboard() {
                 </div>
                 <div className="stat-card" id="stat-pending">
                     <div>
-                        <div className="stat-card-label">Pending</div>
-                        <div className="stat-card-value">{stats.pending}</div>
+                        <div className="stat-card-label">Pending / In Review</div>
+                        <div className="stat-card-value">{stats.pending + (stats.inReview || 0)}</div>
                     </div>
                     <div className="stat-card-icon pending"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12,6 12,12 16,14" /></svg></div>
                 </div>
@@ -105,6 +104,14 @@ export default function Dashboard() {
                     </div>
                     <div className="stat-card-icon rejected"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg></div>
                 </div>
+                {isAdmin && stats.escalated > 0 && (
+                    <div className="stat-card stat-card-alert" id="stat-escalated">
+                        <div>
+                            <div className="stat-card-label">⚠ Escalated (SLA Breach)</div>
+                            <div className="stat-card-value">{stats.escalated}</div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div className="dashboard-grid">
@@ -117,24 +124,9 @@ export default function Dashboard() {
                             <>
                                 <div className="donut-chart">
                                     <svg viewBox="0 0 200 200">
-                                        <circle
-                                            cx="100" cy="100" r={radius}
-                                            stroke="var(--warning)"
-                                            strokeDasharray={`${pendingDash} ${circumference - pendingDash}`}
-                                            strokeDashoffset={pendingOffset}
-                                        />
-                                        <circle
-                                            cx="100" cy="100" r={radius}
-                                            stroke="var(--success)"
-                                            strokeDasharray={`${approvedDash} ${circumference - approvedDash}`}
-                                            strokeDashoffset={approvedOffset}
-                                        />
-                                        <circle
-                                            cx="100" cy="100" r={radius}
-                                            stroke="var(--danger)"
-                                            strokeDasharray={`${rejectedDash} ${circumference - rejectedDash}`}
-                                            strokeDashoffset={rejectedOffset}
-                                        />
+                                        <circle cx="100" cy="100" r={radius} stroke="var(--warning)" strokeDasharray={`${pendingDash} ${circumference - pendingDash}`} strokeDashoffset={pendingOffset} />
+                                        <circle cx="100" cy="100" r={radius} stroke="var(--success)" strokeDasharray={`${approvedDash} ${circumference - approvedDash}`} strokeDashoffset={approvedOffset} />
+                                        <circle cx="100" cy="100" r={radius} stroke="var(--danger)" strokeDasharray={`${rejectedDash} ${circumference - rejectedDash}`} strokeDashoffset={rejectedOffset} />
                                     </svg>
                                     <div className="donut-center">
                                         <div className="donut-center-value">{stats.total}</div>
@@ -142,18 +134,9 @@ export default function Dashboard() {
                                     </div>
                                 </div>
                                 <div className="donut-legend">
-                                    <div className="donut-legend-item">
-                                        <div className="donut-legend-dot" style={{ background: 'var(--warning)' }}></div>
-                                        Pending
-                                    </div>
-                                    <div className="donut-legend-item">
-                                        <div className="donut-legend-dot" style={{ background: 'var(--success)' }}></div>
-                                        Approved
-                                    </div>
-                                    <div className="donut-legend-item">
-                                        <div className="donut-legend-dot" style={{ background: 'var(--danger)' }}></div>
-                                        Rejected
-                                    </div>
+                                    <div className="donut-legend-item"><div className="donut-legend-dot" style={{ background: 'var(--warning)' }}></div>Pending</div>
+                                    <div className="donut-legend-item"><div className="donut-legend-dot" style={{ background: 'var(--success)' }}></div>Approved</div>
+                                    <div className="donut-legend-item"><div className="donut-legend-dot" style={{ background: 'var(--danger)' }}></div>Rejected</div>
                                 </div>
                             </>
                         ) : (
@@ -167,21 +150,30 @@ export default function Dashboard() {
                 </div>
 
                 <div className="card animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
-                    <div className="card-header">
-                        <h2>Recent Activity</h2>
-                    </div>
+                    <div className="card-header"><h2>Recent Activity</h2></div>
                     <div className="card-body">
                         {recent.length > 0 ? (
                             <ul className="activity-feed">
                                 {recent.map((req, index) => (
-                                    <li key={req._id} className="activity-item" style={{ animationDelay: `${index * 0.05}s` }}>
+                                    <li
+                                        key={req._id}
+                                        className="activity-item"
+                                        style={{ animationDelay: `${index * 0.05}s`, cursor: 'pointer' }}
+                                        onClick={() => navigate(`/request/${req._id}`)}
+                                    >
                                         <div>
                                             <div className="activity-title">{req.title}</div>
                                             <div className="activity-meta">
-                                                {req.submittedBy?.email} | {formatDate(req.createdAt)}
+                                                {req.submittedBy?.name} · {formatDate(req.createdAt)}
+                                                {req.currentStage && req.currentStage !== 'completed' && (
+                                                    <span className="activity-stage"> · Stage: {stageLabels[req.currentStage]}</span>
+                                                )}
                                             </div>
                                         </div>
-                                        <span className={`badge badge-${req.status.toLowerCase()}`}>{req.status}</span>
+                                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                            {req.escalated && <span className="badge badge-escalated" style={{ fontSize: '10px', padding: '2px 6px' }}>⚠</span>}
+                                            <span className={`badge badge-${req.status.toLowerCase().replace(' ', '-')}`}>{req.status}</span>
+                                        </div>
                                     </li>
                                 ))}
                             </ul>

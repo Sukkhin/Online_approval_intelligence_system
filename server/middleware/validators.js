@@ -1,4 +1,5 @@
 const { body, validationResult } = require('express-validator');
+const validRoles = ['user', 'admin', 'principal'];
 
 // Middleware to check for validation errors
 const validate = (req, res, next) => {
@@ -67,14 +68,32 @@ const validateCreateUser = [
         .isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
     body('role')
         .optional()
-        .isIn(['user', 'admin', 'principal']).withMessage('Invalid role value')
+        .isIn(validRoles).withMessage('Invalid role value')
 ];
 
 // Role update validation
 const validateRoleUpdate = [
     body('role')
         .notEmpty().withMessage('Role is required')
-        .isIn(['user', 'admin', 'principal']).withMessage('Invalid role. Must be user, admin, or principal')
+        .isIn(validRoles).withMessage('Invalid role. Must be user, admin, or principal')
+];
+
+// Comment validation
+const validateComment = [
+    body('text')
+        .trim()
+        .notEmpty().withMessage('Comment text is required')
+        .isLength({ max: 2000 }).withMessage('Comment must be under 2000 characters')
+];
+
+// Review action validation
+const validateReview = [
+    body('action')
+        .notEmpty().withMessage('Action is required')
+        .isIn(['approve', 'reject']).withMessage('Action must be approve or reject'),
+    body('comment')
+        .optional()
+        .trim()
 ];
 
 module.exports = {
@@ -83,5 +102,7 @@ module.exports = {
     validateLogin,
     validateRequest,
     validateCreateUser,
-    validateRoleUpdate
+    validateRoleUpdate,
+    validateComment,
+    validateReview
 };

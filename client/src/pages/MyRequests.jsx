@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
+
+const stageLabels = { admin: 'Admin / Principal', completed: 'Done' };
+const stageOrder = ['admin', 'completed'];
 
 export default function MyRequests() {
     const [requests, setRequests] = useState([]);
@@ -7,14 +11,11 @@ export default function MyRequests() {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
-    useEffect(() => {
-        loadRequests();
-    }, []);
+    useEffect(() => { loadRequests(); }, []);
 
-    useEffect(() => {
-        filterRequests();
-    }, [search, statusFilter, requests]);
+    useEffect(() => { filterRequests(); }, [search, statusFilter, requests]);
 
     const loadRequests = async () => {
         try {
@@ -29,11 +30,9 @@ export default function MyRequests() {
 
     const filterRequests = () => {
         let result = [...requests];
-
         if (statusFilter !== 'all') {
             result = result.filter((request) => request.status === statusFilter);
         }
-
         if (search.trim()) {
             const query = search.toLowerCase();
             result = result.filter((request) =>
@@ -41,7 +40,6 @@ export default function MyRequests() {
                 request.description.toLowerCase().includes(query)
             );
         }
-
         setFiltered(result);
     };
 
@@ -54,9 +52,7 @@ export default function MyRequests() {
     if (loading) {
         return (
             <div>
-                <div className="page-header">
-                    <div className="skeleton skeleton-title"></div>
-                </div>
+                <div className="page-header"><div className="skeleton skeleton-title"></div></div>
                 {[1, 2, 3].map((item) => <div key={item} className="skeleton skeleton-card" style={{ height: '120px' }}></div>)}
             </div>
         );
@@ -93,34 +89,56 @@ export default function MyRequests() {
                 >
                     <option value="all">All Statuses</option>
                     <option value="Pending">Pending</option>
+                    <option value="In Review">In Review</option>
                     <option value="Approved">Approved</option>
                     <option value="Rejected">Rejected</option>
+                    <option value="Escalated">Escalated</option>
                 </select>
             </div>
 
             <div className="request-list stagger">
                 {filtered.length > 0 ? (
                     filtered.map((req, index) => (
-                        <div key={req._id} className="request-card" style={{ animationDelay: `${index * 0.05}s` }}>
+                        <div
+                            key={req._id}
+                            className="request-card request-card-clickable"
+                            style={{ animationDelay: `${index * 0.05}s` }}
+                            onClick={() => navigate(`/request/${req._id}`)}
+                        >
                             <div className="request-card-header">
                                 <span className="request-card-title">{req.title}</span>
-                                <span className={`badge badge-${req.status.toLowerCase()}`}>{req.status}</span>
+                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                    {req.escalated && <span className="badge badge-escalated">⚠ SLA</span>}
+                                    <span className={`badge badge-${req.status.toLowerCase().replace(' ', '-')}`}>{req.status}</span>
+                                </div>
                             </div>
                             <div className="request-card-desc">{req.description}</div>
+
+                            {/* Mini Stage Progress */}
+                            <div className="mini-stage-bar">
+                                {stageOrder.map((stage, idx) => {
+                                    const chainEntry = req.approvalChain?.find(a => a.stage === stage);
+                                    let cls = 'upcoming';
+                                    if (chainEntry?.status === 'approved') cls = 'approved';
+                                    else if (chainEntry?.status === 'rejected') cls = 'rejected';
+                                    else if (stage === req.currentStage && req.status !== 'Approved' && req.status !== 'Rejected') cls = 'current';
+                                    if (stage === 'completed' && req.status === 'Approved') cls = 'approved';
+                                    return (
+                                        <div key={stage} className={`mini-stage mini-stage-${cls}`}>
+                                            <div className="mini-stage-dot"></div>
+                                            <span>{stageLabels[stage]}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
                             <div className="request-card-meta">
-                                <span className={`priority-badge priority-${req.priority.toLowerCase()}`}>
-                                    {req.priority}
-                                </span>
+                                <span className={`priority-badge priority-${req.priority.toLowerCase()}`}>{req.priority}</span>
                                 <span>{req.category}</span>
                                 <span>{formatDate(req.createdAt)}</span>
-                                <span>{req.submittedBy?.email}</span>
+                                {req.attachments?.length > 0 && <span>📎 {req.attachments.length}</span>}
+                                {req.comments?.length > 0 && <span>💬 {req.comments.length}</span>}
                             </div>
-                            {req.adminComment && (
-                                <div className="admin-comment-section">
-                                    <div className="admin-comment-label">Admin Remark</div>
-                                    <div className="admin-comment-text">{req.adminComment}</div>
-                                </div>
-                            )}
                         </div>
                     ))
                 ) : (

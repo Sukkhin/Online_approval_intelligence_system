@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 
 const icons = {
     dashboard: (
@@ -36,6 +37,25 @@ const icons = {
             <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
     ),
+    notifications: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+    ),
+    analytics: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="12" width="4" height="9" rx="1" />
+            <rect x="10" y="7" width="4" height="14" rx="1" />
+            <rect x="17" y="3" width="4" height="18" rx="1" />
+        </svg>
+    ),
+    principal: (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3l7 4v5c0 5-3 8.5-7 9-4-.5-7-4-7-9V7l7-4z" />
+            <path d="M9 12l2 2 4-4" />
+        </svg>
+    ),
     logout: (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -54,6 +74,7 @@ const icons = {
 
 export default function Sidebar({ isOpen = false, onClose = () => { } }) {
     const { user, logout } = useAuth();
+    const { unreadCount } = useNotifications();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -71,7 +92,10 @@ export default function Sidebar({ isOpen = false, onClose = () => { } }) {
             .slice(0, 2) || '?';
     };
 
-    const isAdmin = user?.role === 'admin' || user?.role === 'principal';
+    const canReviewRequests = ['admin', 'principal'].includes(user?.role);
+    const canManageUsers = ['admin', 'principal'].includes(user?.role);
+    const canViewAnalytics = user?.role === 'admin' || user?.role === 'principal';
+    const isPrincipal = user?.role === 'principal';
     const getNavClass = ({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`;
 
     return (
@@ -111,6 +135,13 @@ export default function Sidebar({ isOpen = false, onClose = () => { } }) {
                         Dashboard
                     </NavLink>
 
+                    {isPrincipal && (
+                        <NavLink to="/principal-overview" className={getNavClass} id="nav-principal-overview" onClick={onClose}>
+                            <span className="sidebar-link-icon">{icons.principal}</span>
+                            Principal Overview
+                        </NavLink>
+                    )}
+
                     <NavLink to="/submit-request" className={getNavClass} id="nav-submit" onClick={onClose}>
                         <span className="sidebar-link-icon">{icons.submit}</span>
                         Submit Request
@@ -121,7 +152,13 @@ export default function Sidebar({ isOpen = false, onClose = () => { } }) {
                         My Requests
                     </NavLink>
 
-                    {isAdmin && (
+                    <NavLink to="/notifications" className={getNavClass} id="nav-notifications" onClick={onClose}>
+                        <span className="sidebar-link-icon">{icons.notifications}</span>
+                        Notifications
+                        {unreadCount > 0 && <span className="sidebar-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+                    </NavLink>
+
+                    {canReviewRequests && (
                         <>
                             <div className="sidebar-section-title">Administration</div>
 
@@ -130,10 +167,19 @@ export default function Sidebar({ isOpen = false, onClose = () => { } }) {
                                 Manage Approvals
                             </NavLink>
 
-                            <NavLink to="/user-management" className={getNavClass} id="nav-users" onClick={onClose}>
-                                <span className="sidebar-link-icon">{icons.users}</span>
-                                User Management
-                            </NavLink>
+                            {canManageUsers && (
+                                <NavLink to="/user-management" className={getNavClass} id="nav-users" onClick={onClose}>
+                                    <span className="sidebar-link-icon">{icons.users}</span>
+                                    User Management
+                                </NavLink>
+                            )}
+
+                            {canViewAnalytics && (
+                                <NavLink to="/analytics" className={getNavClass} id="nav-analytics" onClick={onClose}>
+                                    <span className="sidebar-link-icon">{icons.analytics}</span>
+                                    Analytics
+                                </NavLink>
+                            )}
                         </>
                     )}
 

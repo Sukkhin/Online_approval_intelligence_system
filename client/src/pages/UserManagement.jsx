@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import API from '../services/api';
 import { useToast } from '../hooks/useToast';
+import { useAuth } from '../context/AuthContext';
 
 export default function UserManagement() {
     const [users, setUsers] = useState([]);
@@ -14,6 +15,8 @@ export default function UserManagement() {
     const [addLoading, setAddLoading] = useState(false);
 
     const { addToast, ToastContainer } = useToast();
+    const { user: currentUser } = useAuth();
+    const roleOptions = currentUser?.role === 'principal' ? ['user', 'admin'] : ['user'];
 
     useEffect(() => {
         loadData();
@@ -31,6 +34,14 @@ export default function UserManagement() {
         }
     }, [search, users]);
 
+    useEffect(() => {
+        setNewUser((prev) => (
+            roleOptions.includes(prev.role)
+                ? prev
+                : { ...prev, role: roleOptions[0] }
+        ));
+    }, [currentUser?.role]);
+
     const loadData = async () => {
         try {
             const [usersRes, statsRes] = await Promise.all([
@@ -46,6 +57,13 @@ export default function UserManagement() {
         }
     };
 
+    const canManageAccount = (targetUser) => {
+        if (!currentUser || currentUser._id === targetUser._id) return false;
+        if (currentUser.role === 'principal') return ['admin', 'user'].includes(targetUser.role);
+        if (currentUser.role === 'admin') return targetUser.role === 'user';
+        return false;
+    };
+
     const handleAddUser = async (e) => {
         e.preventDefault();
         if (!newUser.name || !newUser.email || !newUser.password) {
@@ -58,7 +76,7 @@ export default function UserManagement() {
             await API.post('/users', newUser);
             addToast('User created successfully!', 'success');
             setShowAddModal(false);
-            setNewUser({ name: '', email: '', password: '', role: 'user' });
+            setNewUser({ name: '', email: '', password: '', role: roleOptions[0] });
             loadData();
         } catch (err) {
             addToast(err.response?.data?.message || 'Failed to create user', 'error');
@@ -105,7 +123,7 @@ export default function UserManagement() {
             <div className="user-management-header page-header">
                 <div>
                     <h1>User Management</h1>
-                    <p>As Admin, you can add regular Users</p>
+                    <p>{currentUser?.role === 'principal' ? 'Create admins and users.' : 'Create user accounts only.'}</p>
                 </div>
                 <button
                     className="btn btn-primary"
@@ -123,7 +141,7 @@ export default function UserManagement() {
                         <path d="M9 12l2 2 4-4" />
                     </svg>
                 </div>
-                <span>Admin access only. Create accounts, review system roles, and keep the approval team organized.</span>
+                <span>Principals can create admins and users. Admins can create users only.</span>
             </div>
 
             <div className="stats-grid stagger">
@@ -186,19 +204,21 @@ export default function UserManagement() {
                                         <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                                             {formatDate(user.createdAt)}
                                         </span>
-                                        <button
-                                            className="btn btn-outline btn-sm"
-                                            onClick={() => setDeleteModal(user._id)}
-                                            style={{ padding: '6px 12px', fontSize: '12px' }}
-                                        >
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M3 6h18" />
-                                                <path d="M8 6V4h8v2" />
-                                                <path d="M19 6l-1 14H6L5 6" />
-                                                <path d="M10 11v6" />
-                                                <path d="M14 11v6" />
-                                            </svg>
-                                        </button>
+                                        {canManageAccount(user) && (
+                                            <button
+                                                className="btn btn-outline btn-sm"
+                                                onClick={() => setDeleteModal(user._id)}
+                                                style={{ padding: '6px 12px', fontSize: '12px' }}
+                                            >
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M3 6h18" />
+                                                    <path d="M8 6V4h8v2" />
+                                                    <path d="M19 6l-1 14H6L5 6" />
+                                                    <path d="M10 11v6" />
+                                                    <path d="M14 11v6" />
+                                                </svg>
+                                            </button>
+                                        )}
                                     </div>
                                 </li>
                             ))
@@ -217,7 +237,7 @@ export default function UserManagement() {
                 <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
                     <div className="modal" onClick={(e) => e.stopPropagation()}>
                         <h2>Add New User</h2>
-                        <p>Create a new user account for the system.</p>
+                        <p>{currentUser?.role === 'principal' ? 'Create a new admin or user account.' : 'Create a new user account.'}</p>
 
                         <form onSubmit={handleAddUser}>
                             <div className="form-group">
@@ -261,9 +281,11 @@ export default function UserManagement() {
                                     value={newUser.role}
                                     onChange={(e) => setNewUser((prev) => ({ ...prev, role: e.target.value }))}
                                 >
-                                    <option value="user">User</option>
-                                    <option value="admin">Admin</option>
-                                    <option value="principal">Principal</option>
+                                    {roleOptions.map((role) => (
+                                        <option key={role} value={role}>
+                                            {role.charAt(0).toUpperCase() + role.slice(1)}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="modal-actions">
