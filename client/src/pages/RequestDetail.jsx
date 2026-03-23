@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../hooks/useToast';
+import { getUploadUrl } from '../utils/runtimeConfig';
 
 const stageLabels = { admin: 'Admin / Principal Review', completed: 'Completed' };
 const stageOrder = ['admin', 'completed'];
@@ -192,7 +193,7 @@ export default function RequestDetail() {
                                     {request.attachments.map((att, i) => (
                                         <a
                                             key={i}
-                                            href={`/uploads/${att.filename}`}
+                                            href={getUploadUrl(att.filename)}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="attachment-item"
