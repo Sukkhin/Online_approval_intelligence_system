@@ -2,9 +2,11 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
+const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
+const User = require('./models/User');
 const authRoutes = require('./routes/auth');
 const requestRoutes = require('./routes/requests');
 const userRoutes = require('./routes/users');
@@ -24,13 +26,13 @@ const allowedOrigins = (process.env.CORS_ORIGIN || '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
+const clientDistDir = path.join(__dirname, '..', 'client', 'dist');
 
 if (missingEnvVars.length > 0) {
     console.error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
     process.exit(1);
 }
 
-// Middleware
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({
     origin(origin, callback) {
@@ -43,37 +45,73 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Serve uploaded files
 app.use('/uploads', express.static(uploadsDir));
 
-// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/requests', requestRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/sla', slaRoutes);
 
-// Health check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Connect to MongoDB and start server
+if (fs.existsSync(clientDistDir)) {
+    app.use(express.static(clientDistDir));
+    app.get('*', (req, res, next) => {
+        if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+            return next();
+        }
+
+        return res.sendFile(path.join(clientDistDir, 'index.html'));
+    });
+}
+
+async function ensureBootstrapUser() {
+    const name = process.env.BOOTSTRAP_USER_NAME?.trim();
+    const email = process.env.BOOTSTRAP_USER_EMAIL?.trim().toLowerCase();
+    const password = process.env.BOOTSTRAP_USER_PASSWORD;
+    const role = User.normalizeRole(process.env.BOOTSTRAP_USER_ROLE?.trim() || 'principal');
+    const allowedRoles = ['admin', 'principal'];
+
+    if (!name && !email && !password) {
+        return;
+    }
+
+    if (!name || !email || !password) {
+        throw new Error('BOOTSTRAP_USER_NAME, BOOTSTRAP_USER_EMAIL, and BOOTSTRAP_USER_PASSWORD must all be set together');
+    }
+
+    if (!allowedRoles.includes(role)) {
+        throw new Error(`BOOTSTRAP_USER_ROLE must be one of: ${allowedRoles.join(', ')}`);
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+        console.log(`Bootstrap user already exists for ${email}`);
+        return;
+    }
+
+    const bootstrapUser = new User({ name, email, password, role });
+    await bootstrapUser.save();
+    console.log(`Bootstrap ${role} user created for ${email}`);
+}
+
 const PORT = process.env.PORT || 5000;
 
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => {
-        console.log('✅ Connected to MongoDB');
+    .then(async () => {
+        console.log('Connected to MongoDB');
+        await ensureBootstrapUser();
         app.listen(PORT, () => {
-            console.log(`🚀 Server running on port ${PORT}`);
+            console.log(`Server running on port ${PORT}`);
 
-            // Run SLA check every 30 minutes
             setInterval(checkSlaDeadlines, 30 * 60 * 1000);
-            // Run once on startup after a short delay
             setTimeout(checkSlaDeadlines, 5000);
         });
     })
     .catch((err) => {
-        console.error('❌ MongoDB connection error:', err.message);
+        console.error('MongoDB connection error:', err.message);
         process.exit(1);
     });

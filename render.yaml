@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: approvaliq
+    runtime: node
+    plan: starter
+    region: singapore
+    buildCommand: |
+      cd client
+      npm ci
+      npm run build
+      cd ../server
+      npm ci
+    startCommand: cd server && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
+      - key: UPLOADS_DIR
+        value: uploads
+      - key: BOOTSTRAP_USER_NAME
+        sync: false
+      - key: BOOTSTRAP_USER_EMAIL
+        sync: false
+      - key: BOOTSTRAP_USER_PASSWORD
+        sync: false
+      - key: BOOTSTRAP_USER_ROLE
+        value: principal
+    disk:
+      name: uploads
+      mountPath: /opt/render/project/src/server/uploads
+      sizeGB: 1
