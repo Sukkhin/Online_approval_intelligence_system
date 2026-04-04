@@ -69,6 +69,28 @@ The blueprint will create:
 - a persistent disk for `server/uploads`
 - the correct build and start commands
 
+## Optional: enable GitHub CI/CD
+
+This repo now includes a GitHub Actions workflow at `.github/workflows/ci-cd.yml`.
+
+What it does:
+
+- runs backend tests on every push to `main`
+- runs backend syntax checks on every push to `main`
+- builds the frontend on every push to `main`
+- runs the same checks for pull requests targeting `main`
+- can trigger a Render deploy automatically after checks pass on `main`
+
+To enable automatic deploys:
+
+1. In Render, open your web service.
+2. Find the deploy hook URL.
+3. In GitHub, open `Settings` -> `Secrets and variables` -> `Actions`.
+4. Add a repository secret named `RENDER_DEPLOY_HOOK_URL`.
+5. Paste the Render deploy hook URL as the value.
+
+If that secret is missing, the CI checks still run, but deployment is skipped.
+
 ## Step 4: Set the environment variables in Render
 
 Required:
