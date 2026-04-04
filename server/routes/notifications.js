@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
 const { auth } = require('../middleware/auth');
 
@@ -65,6 +66,10 @@ router.put('/read-all', auth, async (req, res) => {
 // @access  Private
 router.put('/:id/read', auth, async (req, res) => {
     try {
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({ message: 'Invalid notification id' });
+        }
+
         const notification = await Notification.findOneAndUpdate(
             { _id: req.params.id, user: req.user._id },
             { $set: { read: true } },

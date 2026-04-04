@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import API from '../services/api';
-import { useAuth } from '../context/AuthContext';
 
 export default function Analytics() {
-    const { user } = useAuth();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -22,6 +20,12 @@ export default function Analytics() {
 
     const downloadCSV = () => {
         if (!data) return;
+
+        const escapeCsvValue = (value) => {
+            const text = value == null ? '' : String(value);
+            return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+        };
+
         const rows = [['Metric', 'Value']];
         rows.push(['Total Requests', data.totalRequests]);
         rows.push(['Approval Rate', data.approvalRate + '%']);
@@ -29,21 +33,26 @@ export default function Analytics() {
         rows.push(['SLA Compliance', data.slaCompliance + '%']);
         rows.push([]);
         rows.push(['Status', 'Count']);
-        Object.entries(data.statusCount).forEach(([k, v]) => rows.push([k, v]));
+        Object.entries(data.statusCount).forEach(([key, value]) => rows.push([key, value]));
         rows.push([]);
         rows.push(['Category', 'Count']);
-        Object.entries(data.categoryCount).forEach(([k, v]) => rows.push([k, v]));
+        Object.entries(data.categoryCount).forEach(([key, value]) => rows.push([key, value]));
         rows.push([]);
         rows.push(['Bottleneck Request', 'Days Open', 'Stage', 'Escalated']);
-        (data.pendingBottlenecks || []).forEach(b => rows.push([b.title, b.daysOpen, b.currentStage, b.escalated ? 'Yes' : 'No']));
+        (data.pendingBottlenecks || []).forEach((item) => rows.push([
+            item.title,
+            item.daysOpen,
+            item.currentStage,
+            item.escalated ? 'Yes' : 'No'
+        ]));
 
-        const csv = rows.map(r => r.join(',')).join('\n');
+        const csv = rows.map((row) => row.map(escapeCsvValue).join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `approvaliq-report-${new Date().toISOString().slice(0, 10)}.csv`;
-        a.click();
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = `approvaliq-report-${new Date().toISOString().slice(0, 10)}.csv`;
+        anchor.click();
         URL.revokeObjectURL(url);
     };
 
@@ -51,7 +60,7 @@ export default function Analytics() {
         return (
             <div>
                 <div className="page-header"><div className="skeleton skeleton-title"></div></div>
-                <div className="stats-grid">{[1, 2, 3, 4].map(i => <div key={i} className="skeleton skeleton-card" style={{ height: '100px' }}></div>)}</div>
+                <div className="stats-grid">{[1, 2, 3, 4].map((item) => <div key={item} className="skeleton skeleton-card" style={{ height: '100px' }}></div>)}</div>
             </div>
         );
     }
@@ -68,7 +77,11 @@ export default function Analytics() {
     const maxCategoryCount = Math.max(...Object.values(data.categoryCount), 1);
     const monthlyKeys = Object.keys(data.monthlyTrends);
     const maxMonthly = Math.max(
-        ...monthlyKeys.map(k => Math.max(data.monthlyTrends[k].submitted, data.monthlyTrends[k].approved, data.monthlyTrends[k].rejected)),
+        ...monthlyKeys.map((key) => Math.max(
+            data.monthlyTrends[key].submitted,
+            data.monthlyTrends[key].approved,
+            data.monthlyTrends[key].rejected
+        )),
         1
     );
 
@@ -80,11 +93,10 @@ export default function Analytics() {
                     <p>Insights into approval workflows, trends, and bottlenecks</p>
                 </div>
                 <button className="btn btn-primary btn-sm" onClick={downloadCSV}>
-                    ↓ Download CSV
+                    Download CSV
                 </button>
             </div>
 
-            {/* Key Metrics */}
             <div className="stats-grid stagger">
                 <div className="stat-card" id="stat-approval-rate">
                     <div>
@@ -125,14 +137,13 @@ export default function Analytics() {
             </div>
 
             <div className="dashboard-grid">
-                {/* Category Distribution */}
                 <div className="card animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
                     <div className="card-header"><h2>Requests by Category</h2></div>
                     <div className="card-body">
                         <div className="bar-chart">
-                            {Object.entries(data.categoryCount).map(([cat, count]) => (
-                                <div key={cat} className="bar-row">
-                                    <span className="bar-label">{cat}</span>
+                            {Object.entries(data.categoryCount).map(([category, count]) => (
+                                <div key={category} className="bar-row">
+                                    <span className="bar-label">{category}</span>
                                     <div className="bar-track">
                                         <div className="bar-fill" style={{ width: `${(count / maxCategoryCount) * 100}%` }}></div>
                                     </div>
@@ -143,12 +154,11 @@ export default function Analytics() {
                     </div>
                 </div>
 
-                {/* Status Distribution */}
                 <div className="card animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
                     <div className="card-header"><h2>Status Breakdown</h2></div>
                     <div className="card-body">
                         <div className="status-breakdown">
-                            {Object.entries(data.statusCount).filter(([, v]) => v > 0).map(([status, count]) => (
+                            {Object.entries(data.statusCount).filter(([, value]) => value > 0).map(([status, count]) => (
                                 <div key={status} className="status-row">
                                     <div className="status-row-left">
                                         <span className={`badge badge-${status.toLowerCase().replace(' ', '-')}`}>{status}</span>
@@ -165,13 +175,12 @@ export default function Analytics() {
                     </div>
                 </div>
 
-                {/* Monthly Trends */}
                 {monthlyKeys.length > 0 && (
                     <div className="card animate-fadeInUp" style={{ animationDelay: '0.3s' }}>
                         <div className="card-header"><h2>Monthly Trends</h2></div>
                         <div className="card-body">
                             <div className="trend-chart">
-                                {monthlyKeys.map(month => (
+                                {monthlyKeys.map((month) => (
                                     <div key={month} className="trend-col">
                                         <div className="trend-bars">
                                             <div className="trend-bar trend-submitted" style={{ height: `${(data.monthlyTrends[month].submitted / maxMonthly) * 100}%` }} title={`Submitted: ${data.monthlyTrends[month].submitted}`}></div>
@@ -191,27 +200,26 @@ export default function Analytics() {
                     </div>
                 )}
 
-                {/* Pending Bottlenecks */}
                 <div className="card animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
                     <div className="card-header"><h2>Pending Bottlenecks</h2></div>
                     <div className="card-body">
                         {data.pendingBottlenecks?.length > 0 ? (
                             <ul className="bottleneck-list">
-                                {data.pendingBottlenecks.map(b => (
-                                    <li key={b._id} className={`bottleneck-item ${b.escalated ? 'escalated' : ''}`}>
+                                {data.pendingBottlenecks.map((item) => (
+                                    <li key={item._id} className={`bottleneck-item ${item.escalated ? 'escalated' : ''}`}>
                                         <div>
-                                            <div className="bottleneck-title">{b.title}</div>
+                                            <div className="bottleneck-title">{item.title}</div>
                                             <div className="bottleneck-meta">
-                                                {b.category} · Stage: {b.currentStage} · {b.daysOpen} day{b.daysOpen !== 1 ? 's' : ''} open
+                                                {item.category} | Stage: {item.currentStage} | {item.daysOpen} day{item.daysOpen !== 1 ? 's' : ''} open
                                             </div>
                                         </div>
-                                        {b.escalated && <span className="badge badge-escalated">⚠ Escalated</span>}
+                                        {item.escalated && <span className="badge badge-escalated">SLA Escalated</span>}
                                     </li>
                                 ))}
                             </ul>
                         ) : (
                             <div className="empty-state" style={{ padding: '24px' }}>
-                                <p>No pending bottlenecks — all requests flowing smoothly.</p>
+                                <p>No pending bottlenecks - all requests flowing smoothly.</p>
                             </div>
                         )}
                     </div>

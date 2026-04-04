@@ -25,7 +25,7 @@ router.get('/overdue', auth, authorize('admin', 'principal'), async (req, res) =
     }
 });
 
-// SLA check function — called by interval in server.js
+// SLA check function called by interval in server.js
 async function checkSlaDeadlines() {
     try {
         const now = new Date();
@@ -49,23 +49,22 @@ async function checkSlaDeadlines() {
             request.escalated = true;
             request.status = 'Escalated';
             request.auditTrail.push({
-                action: 'SLA Breached — Escalated',
+                action: 'SLA Breached - Escalated',
                 performedBy: request.submittedBy,
                 details: `Request exceeded SLA deadline (${request.slaDeadline.toISOString()}). Auto-escalated.`
             });
             await request.save();
 
-            // Notify the reviewers who can act at the current stage.
             const reviewerRoles = getReviewerRolesForStage(request.currentStage);
             const reviewers = await User.find({
                 role: { $in: reviewerRoles.flatMap((role) => role === 'admin' ? ['admin', 'faculty'] : [role]) },
                 isActive: true
             }).select('_id');
 
-            const docs = reviewers.map(u => ({
-                user: u._id,
+            const docs = reviewers.map((user) => ({
+                user: user._id,
                 type: 'request_escalated',
-                title: 'Request Escalated — SLA Breached',
+                title: 'Request Escalated - SLA Breached',
                 message: `"${request.title}" has exceeded its SLA deadline and needs immediate attention.`,
                 relatedRequest: request._id
             }));
@@ -76,7 +75,7 @@ async function checkSlaDeadlines() {
         }
 
         if (overdueRequests.length > 0) {
-            console.log(`⚠️  SLA Check: ${overdueRequests.length} request(s) escalated.`);
+            console.log(`SLA Check: ${overdueRequests.length} request(s) escalated.`);
         }
     } catch (error) {
         console.error('SLA check error:', error);

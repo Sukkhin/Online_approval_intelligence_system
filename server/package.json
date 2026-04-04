@@ -5,7 +5,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "node --test",
+    "check": "node --check server.js",
+    "verify": "npm run test && npm run check"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

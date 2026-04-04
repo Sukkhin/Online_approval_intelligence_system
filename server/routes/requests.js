@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const Request = require('../models/Request');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
@@ -16,6 +17,10 @@ const {
 } = require('../utils/workflow');
 
 const router = express.Router();
+
+function hasValidRequestId(id) {
+    return mongoose.isValidObjectId(id);
+}
 
 // Helper: create notification for specific users
 async function notify(userIds, type, title, message, requestId) {
@@ -40,7 +45,7 @@ async function getUsersByRole(...roles) {
 // @route   POST /api/requests
 // @desc    Create a new approval request with optional file attachments
 // @access  Private
-router.post('/', auth, upload.array('files', 5), async (req, res) => {
+router.post('/', auth, upload.array('files', 5), validateRequest, validate, async (req, res) => {
     try {
         const { title, description, priority, category } = req.body;
         const normalizedPriority = priority || 'Medium';
@@ -286,6 +291,10 @@ router.get('/analytics', auth, authorize('admin', 'principal'), async (req, res)
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
     try {
+        if (!hasValidRequestId(req.params.id)) {
+            return res.status(400).json({ message: 'Invalid request id' });
+        }
+
         const request = await Request.findById(req.params.id)
             .populate('submittedBy', 'name email role')
             .populate('approvalChain.reviewedBy', 'name email role')
@@ -311,6 +320,10 @@ router.get('/:id', auth, async (req, res) => {
 // @access  Admin/Principal
 router.put('/:id/review', auth, authorize('admin', 'principal'), validateReview, validate, async (req, res) => {
     try {
+        if (!hasValidRequestId(req.params.id)) {
+            return res.status(400).json({ message: 'Invalid request id' });
+        }
+
         const { action, comment } = req.body;
 
         const request = await Request.findById(req.params.id);
@@ -403,8 +416,12 @@ router.put('/:id/review', auth, authorize('admin', 'principal'), validateReview,
 // @route   POST /api/requests/:id/comments
 // @desc    Add a comment to a request
 // @access  Private
-router.post('/:id/comments', auth, async (req, res) => {
+router.post('/:id/comments', auth, validateComment, validate, async (req, res) => {
     try {
+        if (!hasValidRequestId(req.params.id)) {
+            return res.status(400).json({ message: 'Invalid request id' });
+        }
+
         const { text } = req.body;
         if (!text || !text.trim()) {
             return res.status(400).json({ message: 'Comment text is required' });
@@ -463,6 +480,10 @@ router.post('/:id/comments', auth, async (req, res) => {
 // @access  Private
 router.get('/:id/timeline', auth, async (req, res) => {
     try {
+        if (!hasValidRequestId(req.params.id)) {
+            return res.status(400).json({ message: 'Invalid request id' });
+        }
+
         const request = await Request.findById(req.params.id)
             .populate('auditTrail.performedBy', 'name email role');
 
@@ -485,6 +506,10 @@ router.get('/:id/timeline', auth, async (req, res) => {
 // @access  Private (own request only) or Admin
 router.delete('/:id', auth, async (req, res) => {
     try {
+        if (!hasValidRequestId(req.params.id)) {
+            return res.status(400).json({ message: 'Invalid request id' });
+        }
+
         const request = await Request.findById(req.params.id);
         if (!request) {
             return res.status(404).json({ message: 'Request not found' });

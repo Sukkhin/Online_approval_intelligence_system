@@ -33,6 +33,10 @@ if (missingEnvVars.length > 0) {
     process.exit(1);
 }
 
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({
     origin(origin, callback) {
@@ -67,6 +71,36 @@ if (fs.existsSync(clientDistDir)) {
         return res.sendFile(path.join(clientDistDir, 'index.html'));
     });
 }
+
+app.use((err, req, res, next) => {
+    if (res.headersSent) {
+        return next(err);
+    }
+
+    if (err?.name === 'MulterError') {
+        const uploadErrors = {
+            LIMIT_FILE_SIZE: 'Each uploaded file must be 10 MB or smaller.',
+            LIMIT_FILE_COUNT: 'A maximum of 5 files can be uploaded per request.'
+        };
+
+        return res.status(400).json({ message: uploadErrors[err.code] || err.message });
+    }
+
+    if (err?.message === 'File type not allowed. Supported: PDF, images, Word, Excel, text files.') {
+        return res.status(400).json({ message: err.message });
+    }
+
+    if (err?.message === 'Not allowed by CORS') {
+        return res.status(403).json({ message: 'Origin is not allowed by CORS' });
+    }
+
+    if (err?.name === 'CastError') {
+        return res.status(400).json({ message: 'Invalid resource identifier' });
+    }
+
+    console.error('Unhandled server error:', err);
+    return res.status(500).json({ message: 'Internal server error' });
+});
 
 async function ensureBootstrapUser() {
     const name = process.env.BOOTSTRAP_USER_NAME?.trim();

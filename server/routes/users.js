@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const { auth, authorize } = require('../middleware/auth');
 const { validateCreateUser, validateRoleUpdate, validate } = require('../middleware/validators');
@@ -80,6 +81,10 @@ router.post('/', auth, authorize('admin', 'principal'), validateCreateUser, vali
 // @access  Admin/Principal
 router.delete('/:id', auth, authorize('admin', 'principal'), async (req, res) => {
     try {
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({ message: 'Invalid user id' });
+        }
+
         const user = await User.findById(req.params.id);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -101,6 +106,10 @@ router.delete('/:id', auth, authorize('admin', 'principal'), async (req, res) =>
 // @access  Admin/Principal
 router.put('/:id/role', auth, authorize('admin', 'principal'), validateRoleUpdate, validate, async (req, res) => {
     try {
+        if (!mongoose.isValidObjectId(req.params.id)) {
+            return res.status(400).json({ message: 'Invalid user id' });
+        }
+
         const role = normalizeRole(req.body.role);
         const user = await User.findById(req.params.id).select('-password');
 
